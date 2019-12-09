@@ -14,7 +14,23 @@
 #include <homekit/characteristics.h>
 
 
+homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "SPHome");
+
 void on_wifi_ready();
+
+char *device_name_get(void)
+{
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+
+    int name_len = snprintf(NULL, 0, "SPHome-%02X%02X%02X",
+                            mac[3], mac[4], mac[5]);
+    char *name_value = malloc(name_len+1);
+    snprintf(name_value, name_len+1, "SPHome-%02X%02X%02X",
+             mac[3], mac[4], mac[5]);
+
+    return name_value;
+}
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -111,9 +127,9 @@ void led_on_set(homekit_value_t value) {
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_lightbulb, .services=(homekit_service_t*[]){
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sample LED"),
-            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HaPK"),
-            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "025A2BABF19D"),
+            &name,
+            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "PsHome"),
+            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "0"),
             HOMEKIT_CHARACTERISTIC(MODEL, "MyLED"),
             HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.1"),
             HOMEKIT_CHARACTERISTIC(IDENTIFY, led_identify),
@@ -151,6 +167,8 @@ void app_main(void) {
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+    name.value = HOMEKIT_STRING(device_name_get());
 
     wifi_init();
     led_init();
